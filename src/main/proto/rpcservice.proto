@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package com.plarpc.grpc;
+
+
+option java_multiple_files = true;
+option java_package = "com.plarpc.grpchandler";
+option java_outer_classname = "GrpcHandlerProto";
+
+service GrpcCaller {
+   rpc callMethod(RpcData) returns (ReturnValue) {}
+}
+
+message RpcData {
+    string methodName = 1;
+    int32 numOfArguments = 2;
+    repeated bytes serializedArguments = 3;
+}
+
+message ReturnValue {
+    bytes serializedReturnValue = 1;
+}
+
