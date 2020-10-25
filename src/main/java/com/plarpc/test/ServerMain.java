@@ -9,6 +9,6 @@ public class ServerMain {
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new TestImpl();
         PlaRpcHandlerServerApi<Test> server = new PlaRpcHandlerServerImpl<>(test);
-        server.init(5000);
+        server.start(5000);
     }
 }

@@ -10,6 +10,7 @@ import com.plarpc.servicemapper.ServiceMapperImpl;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, InvocationHandler{
@@ -25,12 +26,13 @@ public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, Invoc
      *
      * @throws RuntimeException
      */
-    public PlaRpcHandlerClientImpl(Class<T> clazz) {
+    public PlaRpcHandlerClientImpl(Class<T> clazz) throws RuntimeException {
         this.className = clazz.getName();
         try {
             this.proxyConstructor = Proxy.getProxyClass(clazz.getClassLoader(),
                     new Class[] { clazz }).getConstructor(InvocationHandler.class);
         } catch (NoSuchMethodException | SecurityException | IllegalArgumentException e) {
+            logger.log(Level.WARNING, "Exception: ", e);
             throw new RuntimeException(e);
         }
     }
@@ -38,19 +40,37 @@ public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, Invoc
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String targetClassName = this.className;
-        String address = serviceMapper.getLocationByName(targetClassName);
-        logger.info(targetClassName + "::" + method.getName() +
-                "() RPC Invoked  Address: " + address);
 
-        String[] splitAddress = address.split(":");
-        String host = splitAddress[0];
-        int port = Integer.valueOf(splitAddress[1]);
+        String address = null;
+        try {
+            address = serviceMapper.getLocationByName(targetClassName);
+        } catch (RuntimeException e) {
+            logger.log(Level.WARNING, "Cannot get service by name: ", e);
+            throw new RuntimeException(e);
+        }
+
+        String host = null;
+        int port;
+        try {
+            String[] splitAddress = address.split(":");
+            host = splitAddress[0];
+            port = Integer.valueOf(splitAddress[1]);
+        } catch (IndexOutOfBoundsException e) {
+            logger.log(Level.WARNING, "Address format wrong: ", e);
+            throw new RuntimeException(e);
+        }
+
 
         List<ByteString> serializedObjects = new ArrayList<>();
         if(args != null) {
             SerializationToolApi serializationTool = new SerializationToolImpl();
-            for(int i = 0; i < args.length; i++) {
-                serializedObjects.add(serializationTool.toString(args[i]));
+            try {
+                for (int i = 0; i < args.length; i++) {
+                    serializedObjects.add(serializationTool.toString(args[i]));
+                }
+            } catch (RuntimeException e) {
+                logger.log(Level.WARNING, "Failed to serialize objects: ", e);
+                throw new RuntimeException(e);
             }
         }
 
@@ -74,11 +94,12 @@ public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, Invoc
      * @throws RuntimeException
      */
     @Override
-    public T rpc() {
+    public T rpc() throws RuntimeException{
         try{
             return (T) proxyConstructor.newInstance(new Object[] {this});
         } catch (InstantiationException | IllegalAccessException |
                 IllegalArgumentException | InvocationTargetException e) {
+            logger.info("Exception: " + e);
             throw new RuntimeException(e);
         }
     }

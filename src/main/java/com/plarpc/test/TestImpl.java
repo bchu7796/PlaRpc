@@ -7,7 +7,7 @@ public class TestImpl implements Test{
     }
 
     @Override
-    public Integer helloName(String name) {
+    public Integer helloString(String name) {
         System.out.println("hello " + name);
         return 0;
     }

@@ -9,7 +9,7 @@ public class ClientMain {
     public static void main(String[] args) throws IOException, InterruptedException {
         PlaRpcHandlerClientApi<Test> test = new PlaRpcHandlerClientImpl(Test.class);
         test.rpc().hello();
-        test.rpc().helloName("Brian");
+        test.rpc().helloString("world");
         test.rpc().square(10);
         test.rpc().sum(10, 10);
     }

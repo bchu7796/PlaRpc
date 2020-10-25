@@ -19,18 +19,16 @@ public class GrpcHandlerClient {
     private final GrpcCallerGrpc.GrpcCallerBlockingStub blockingStub;
 
     /**
-     * Construct client connecting to HelloWorld server at {@code host:port}.
+     * Construct client connecting to service server at {@code host:port}.
      */
     public GrpcHandlerClient(String host, int port) {
         this(ManagedChannelBuilder.forAddress(host, port)
-                // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
-                // needing certificates.
                 .usePlaintext()
                 .build());
     }
 
     /**
-     * Construct client for accessing HelloWorld server using the existing channel.
+     * Construct client for accessing service server using the existing channel.
      */
     GrpcHandlerClient(ManagedChannel channel) {
         this.channel = channel;
@@ -42,11 +40,9 @@ public class GrpcHandlerClient {
     }
 
     /**
-     * Say hello to server.
+     * call method in service class.
      */
-    public Object callMethod(String methodName, List<ByteString> arguments) {
-        logger.info("Will try to call " + methodName + " ...");
-
+    public Object callMethod(String methodName, List<ByteString> arguments) throws RuntimeException {
         RpcData request = RpcData.newBuilder().setMethodName(methodName).
                 setNumOfArguments(arguments.size()).
                 addAllSerializedArguments(arguments).build();
@@ -55,11 +51,18 @@ public class GrpcHandlerClient {
             response = blockingStub.callMethod(request);
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return null;
+            throw new RuntimeException(e);
         }
         SerializationToolApi serializationTool = new SerializationToolImpl();
-        Object returnObject = serializationTool.toObject(response.getSerializedReturnValue());
-        logger.info("Return: " + returnObject);
+        Object returnObject = null;
+        try {
+            returnObject = serializationTool.toObject(response.getSerializedReturnValue());
+        } catch (RuntimeException e) {
+            logger.log(Level.WARNING, "Failed to deserialize objects: ", e);
+            throw new RuntimeException(e);
+        }
+
+        logger.info("called method: " + methodName + ", return value: " + returnObject);
         return returnObject;
     }
 }

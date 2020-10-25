@@ -10,6 +10,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -59,31 +60,33 @@ public class GrpcHandlerServer<T> {
         }
     }
 
-    /*
-    TODO
-     */
     class GrpcCallerImpl extends GrpcCallerGrpc.GrpcCallerImplBase {
         @Override
         public void callMethod(RpcData req, StreamObserver<ReturnValue> responseObserver) {
-            // Extract the RPC data from req
+            /* Extract the RPC data from req */
             String methodName = req.getMethodName();
             int numOfArguments = req.getNumOfArguments();
             Object[] objects = new Object[numOfArguments];
             Class[] classes = new Class[numOfArguments];
             SerializationToolApi serializationTool = new SerializationToolImpl();
-            for(int i = 0; i < numOfArguments; i++) {
-                objects[i] = serializationTool.toObject(req.getSerializedArguments(i));
-                classes[i] = objects[i].getClass();
+
+            try {
+                for (int i = 0; i < numOfArguments; i++) {
+                    objects[i] = serializationTool.toObject(req.getSerializedArguments(i));
+                    classes[i] = objects[i].getClass();
+                }
+            } catch (RuntimeException e) {
+                logger.log(Level.WARNING, "Failed to deserialize objects: ", e);
             }
 
 
-            // Invoke method
+            /* Invoke method */
             Method method = null;
             try {
                 method = object.getClass().
                         getMethod(methodName, classes);
             } catch (NoSuchMethodException e) {
-                logger.info("Exception: " + e);
+                logger.log(Level.WARNING, "Target class do not contain method: ", e);
             }
 
             Object returnValue = null;
@@ -92,11 +95,17 @@ public class GrpcHandlerServer<T> {
                 logger.info(methodName + "returns: " + returnValue);
             } catch (IllegalArgumentException | IllegalAccessException |
                     InvocationTargetException e) {
-                logger.info("Exception: " + e);
+                logger.log(Level.WARNING, "Fail to invoke method: ", e);
             }
 
             // Return
-            ByteString serializedReturnValue = serializationTool.toString(returnValue);
+            ByteString serializedReturnValue = null;
+            try {
+                serializedReturnValue = serializationTool.toString(returnValue);
+            } catch (RuntimeException e) {
+                logger.log(Level.WARNING, "Failed to serialize objects: ", e);
+            }
+
             ReturnValue reply = ReturnValue.newBuilder().build().newBuilder().
                     setSerializedReturnValue(serializedReturnValue).build();
             responseObserver.onNext(reply);

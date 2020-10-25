@@ -15,7 +15,7 @@ public class PlaRpcHandlerServerImpl<T> implements PlaRpcHandlerServerApi{
     }
 
     @Override
-    public void init(int port) throws IOException, InterruptedException{
+    public void start(int port) throws IOException, InterruptedException{
         GrpcHandlerServer<T> grpcHandlerServer = new GrpcHandlerServer(this.object);
         grpcHandlerServer.start(port);
         grpcHandlerServer.blockUntilShutdown();

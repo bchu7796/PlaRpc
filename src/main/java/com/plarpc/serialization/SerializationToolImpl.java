@@ -10,7 +10,7 @@ public class SerializationToolImpl implements SerializationToolApi {
     private static final Logger logger = Logger.getLogger(SerializationToolImpl.class.getName());
 
     @Override
-    public ByteString toString(Object object) {
+    public ByteString toString(Object object) throws RuntimeException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = null;
         try {
@@ -18,7 +18,8 @@ public class SerializationToolImpl implements SerializationToolApi {
             out.writeObject(object);
             out.flush();
         } catch (IOException e){
-            logger.log(Level.WARNING, "Serialization failed: {0}", e);
+            logger.log(Level.WARNING, "Exception: ", e);
+            throw new RuntimeException(e);
         } finally {
             try {
                 bos.close();
@@ -31,7 +32,7 @@ public class SerializationToolImpl implements SerializationToolApi {
     }
 
     @Override
-    public Object toObject(ByteString objectByte) {
+    public Object toObject(ByteString objectByte) throws RuntimeException {
         ByteArrayInputStream bis = new ByteArrayInputStream(objectByte.toByteArray());
         ObjectInput in = null;
         Object obj = null;
@@ -39,7 +40,8 @@ public class SerializationToolImpl implements SerializationToolApi {
             in = new ObjectInputStream(bis);
             obj = in.readObject();
         } catch (IOException | ClassNotFoundException e){
-            logger.log(Level.WARNING, "Serialization failed: {0}", e);
+            logger.log(Level.WARNING, "Exception: ", e);
+            throw new RuntimeException(e);
         } finally {
             try {
                 if (in != null) {
