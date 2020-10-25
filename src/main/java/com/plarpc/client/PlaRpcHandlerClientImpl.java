@@ -4,8 +4,6 @@ import com.google.protobuf.ByteString;
 import com.plarpc.grpchandler.GrpcHandlerClient;
 import com.plarpc.serialization.SerializationToolApi;
 import com.plarpc.serialization.SerializationToolImpl;
-import com.plarpc.servicemapper.ServiceMapperApi;
-import com.plarpc.servicemapper.ServiceMapperImpl;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
@@ -15,9 +13,10 @@ import java.util.logging.Logger;
 
 public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, InvocationHandler{
     private static final Logger logger = Logger.getLogger(PlaRpcHandlerClientImpl.class.getName());
-    private static final ServiceMapperApi serviceMapper = new ServiceMapperImpl();
     private Constructor<?> proxyConstructor;
     private String className;
+    private String host;
+    private int port;
 
     /**
      * Initialize the proxy constructor with the class we wish to send the RPC to.
@@ -26,8 +25,10 @@ public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, Invoc
      *
      * @throws RuntimeException
      */
-    public PlaRpcHandlerClientImpl(Class<T> clazz) throws RuntimeException {
+    public PlaRpcHandlerClientImpl(Class<T> clazz, String host, int port) throws RuntimeException {
         this.className = clazz.getName();
+        this.host = host;
+        this.port = port;
         try {
             this.proxyConstructor = Proxy.getProxyClass(clazz.getClassLoader(),
                     new Class[] { clazz }).getConstructor(InvocationHandler.class);
@@ -40,26 +41,6 @@ public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, Invoc
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String targetClassName = this.className;
-
-        String address = null;
-        try {
-            address = serviceMapper.getLocationByName(targetClassName);
-        } catch (RuntimeException e) {
-            logger.log(Level.WARNING, "Cannot get service by name: ", e);
-            throw new RuntimeException(e);
-        }
-
-        String host = null;
-        int port;
-        try {
-            String[] splitAddress = address.split(":");
-            host = splitAddress[0];
-            port = Integer.valueOf(splitAddress[1]);
-        } catch (IndexOutOfBoundsException e) {
-            logger.log(Level.WARNING, "Address format wrong: ", e);
-            throw new RuntimeException(e);
-        }
-
 
         List<ByteString> serializedObjects = new ArrayList<>();
         if(args != null) {
@@ -74,7 +55,7 @@ public class PlaRpcHandlerClientImpl<T> implements PlaRpcHandlerClientApi, Invoc
             }
         }
 
-        GrpcHandlerClient grpcClient = new GrpcHandlerClient(host, port);
+        GrpcHandlerClient grpcClient = new GrpcHandlerClient(this.host, this.port);
         Object returnObject = null;
         try {
             returnObject = grpcClient.callMethod(method.getName(), serializedObjects);
