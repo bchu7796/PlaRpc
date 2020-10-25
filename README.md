@@ -2,7 +2,7 @@
 
 ## Introduction
 
-plaRPC is a tool that makes developing RPC microservices with Java easier. Users can create a normal Java class and run it as the gRPC server simply with this tool.
+plaRPC is a tool that makes developing RPC microservices with Java easier. Users can create a normal Java class and run it as a gRPC server simply with this tool.
 
 ## Example
 
