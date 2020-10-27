@@ -44,15 +44,15 @@ public class TestImpl implements Test{
 We can now deploy the service by using the following code:
 ```Java
 Test test = new TestImpl();
-PlaRpcHandlerServerApi<Test> server = new PlaRpcHandlerServerImpl<>(test);
+PlaRpcServerApi<Test> server = new PlaRpcServerImpl<>(test);
 server.start(5000);
 ```
 
 Clients can connect to the service by using the following code:
 ```Java
-PlaRpcHandlerClientApi<Test> test = new PlaRpcHandlerClientImpl(Test.class, "localhost", 5000);
-test.rpc().hello();
-test.rpc().helloString("world");
-test.rpc().square(10);
-test.rpc().sum(10, 10);
+PlaRpcClientApi<Test> client = new PlaRpcClientImpl<Test>(Test.class, "localhost", 5000);
+client.rpc().hello();
+client.rpc().helloString("world");
+client.rpc().square(10);
+client.rpc().sum(10, 10);
 ```
